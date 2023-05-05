@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<title>Hegemonic</title>
+	<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xNzNun2MAAAEESURBVDhPbZJLSwNBEIS/3xsTNSi+wGNOEVQERREvXmIICJKQXDz4BMEHiqw/xkfZNmtmOrtQLF3d1T3Vs8NXwXfBT4E+KnhG2+g9JP+kNeoztIGOUAO9hVIgCVtoHt2hHfSIlj32UiaaYg8do0t0iJpo5N+HsprppljywddoDnVRNBxIiXV0jlbRItr3NW5SNUUlNt3xwHVjdIBW0FMSpKiElRdQ2ztt0Z4f+L+AIUUaopZf5am7v3JqgWWyX5EiTVxx4tZtqmVe0GsmcMxyXbh7O81cdSrV+h3s1m3wLrqvVGsabPxaJZkh8r432LvIkxGR22zzcxuTEZGb9fiYZ/BZ8Aul0b/QBaic6wAAAABJRU5ErkJggg==" />
+	<style>
+body { background-color: grey; }
+svg { background-color: black; }
+.centre { fill: white; stroke: black; }
+.p1 { fill: yellow; stroke: black; }
+.p2 { fill: red; stroke: black; }
+.p3 { fill: orange; stroke: black; }
+</style>
+</head>
+<body id="jesus">
+<script language="javascript">
+var xmlns = "http://www.w3.org/2000/svg";
+var d = 1;
+
+function createUse(x, y, href, className) {
+	var u = document.createElementNS(xmlns, "use");
+	u.setAttributeNS(null, "x", x);
+	u.setAttributeNS(null, "y", y);
+	u.setAttributeNS(null, "href", href);
+	u.setAttributeNS(null, "class", className);
+	return u;
+}
+
+function createSVG(id, largeur, hauteur, title) {
+	var svgElmt = document.createElementNS(xmlns, "svg");
+	svgElmt.setAttributeNS(null, "width", largeur+2*d);
+	svgElmt.setAttributeNS(null, "height", hauteur+2*d);
+	svgElmt.setAttributeNS(null, "id", id);
+
+	var t = document.createElementNS(xmlns, "title");
+	t.appendChild(document.createTextNode(title));
+	svgElmt.appendChild(t);
+
+	return svgElmt;
+}
+
+function createDefs() {
+	return document.createElementNS(xmlns, "defs");
+}
+
+function createHexagon(id, r) {
+	var r3 = r * Math.sqrt(3);
+
+	var pts_interne = [
+		[-.5*r, .5*r3].join(" "),
+		[.5*r, .5*r3].join(" "),
+		[r, 0].join(" "),
+		[.5*r, -.5*r3].join(" "),
+		[-.5*r, -.5*r3].join(" "),
+		[-r, 0].join(" ")
+	];
+
+	var path_interne = document.createElementNS(xmlns, "path");
+	path_interne.setAttributeNS(null, "id", id);
+	path_interne.setAttributeNS(null, "d", "M" + pts_interne.join(" L") + " Z");
+	return path_interne;
+}
+
+var r = 30;
+var r3 = r * Math.sqrt(3);
+var numberOfColumns = 40;
+var numberOfRows = 15;
+var largeur = (numberOfColumns + 1) * 1.5 * r;
+var hauteur = (numberOfRows + 1) * r3;
+var x0 = 1.5 * r;
+var y0 = r3;
+
+var svgElmt = createSVG("main", largeur, hauteur, "Fond du plateau.");
+var defs = createDefs();
+defs.appendChild(createHexagon("hex", r));
+svgElmt.appendChild(defs);
+
+var grid = document.createElementNS(xmlns, "g");
+grid.setAttributeNS(null, "id", "grid");
+svgElmt.appendChild(grid);
+
+var tokens = document.createElementNS(xmlns, "g");
+tokens.setAttributeNS(null, "id", "tokens");
+svgElmt.appendChild(tokens);
+
+function addUse(e, x, y, id, className) { e.appendChild(createUse(x0 + 1.5*x*r, y0 + y*r3 + x*.5*r3, id, className)); }
+function addHex(x, y, className) { addUse(grid, x, y, "#hex", className); }
+
+function drawColumn(x, ys, className) {
+	if (typeof ys === "number")
+		addHex(x, ys, className);
+	else if (typeof ys === "object")
+		for (var i = 0, l = ys.length; i < l; i++)
+			if (typeof ys[i] === "number")
+				addHex(x, ys[i], className);
+			else if (typeof ys[i] === "object")
+				for (var y = ys[i].min; y <= ys[i].max; y++)
+					addHex(x, y, className);
+}
+
+function drawBoard(tiles, className) {
+	for (var i = 0, l = tiles.length; i < l; i++)
+		drawColumn(tiles[i].x, tiles[i].y, className);
+}
+
+function explode(t) {
+	var s = [], i, j, l, m;
+	for (i = 0, l = t.length; i < l; i++)
+		if (typeof t[i].y === "number")
+			s.push(t[i]);
+		else if (typeof t[i].y === "object")
+			for (j = 0, m = t[i].y.length; j < m; j++)
+				s.push({x:t[i].x, y:t[i].y[j]});
+	return s;
+}
+
+function rotate_sngl(pt, x, y, r) {
+	if (r == 0)
+		return pt;
+	else if (r == 1)
+		return {'x': -pt.y+y+x, 'y': pt.x-x+pt.y};
+	else
+		return rotate_sngl({'x': -pt.y+y+x, 'y': pt.x-x+pt.y}, x, y, r-1);
+}
+
+// rotation autour de l'origine :
+//	x -> -y
+//	y -> x+y
+// rotation autour de (x0, y0)
+//	x -> -y+y0+x0
+//	y -> +x-x0+y
+function rotate_cpy(t, x0, y0, r) {
+	var s = [], i, l;
+	for (i = 0, l = t.length; i < l; i++)
+		s.push(rotate_sngl(t[i], x0, y0, r));
+	return s;
+}
+
+function translate_cpy(t, x0, y0) {
+	var s = [], i, l;
+	for (i = 0, l = t.length; i < l; i++)
+		s.push({x: t[i].x+x0, y: t[i].y+y0});
+	return s;
+}
+
+var centre = explode([{x:-1, y:[0,1]}, {x:0, y:[-1,0,1]}, {x:1, y:[-1,0]}]);
+var quinte = explode([{x:0, y:[0,1]},{x:1, y:[-1,0,1]}]);
+var origine = {x: 4, y: 2};
+
+// 9 pieces
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+for (var i = 0; i < 3; i++) {
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 4), origine.x+2, origine.y-2), origine.x, origine.y, i*2), "p1");
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 4), origine.x+3, origine.y-1), origine.x, origine.y, i*2), "p2");
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 5), origine.x+2, origine.y+1), origine.x, origine.y, i*2), "p3");
+}
+
+// 6 pieces
+origine = {x: 13, y: -3};
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+for (var i = 0; i < 2; i++) {
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+2, origine.y-1), origine.x, origine.y, i*3), "p1");
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 2), origine.x+2, origine.y+1), origine.x, origine.y, i*3), "p2");
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x-2, origine.y+2), origine.x, origine.y, i*3), "p3");
+}
+
+// 6 pieces boring
+origine = {x: 12, y: 4};
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+for (var i = 0; i < 2; i++) {
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+2, origine.y-1), origine.x, origine.y, i*3), "p1");
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x+1, origine.y+1), origine.x, origine.y, i*3), "p2");
+	drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 2), origine.x-1, origine.y+2), origine.x, origine.y, i*3), "p3");
+}
+
+// 5 pieces
+origine = {x: 21, y: -7};
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+2, origine.y-2), origine.x, origine.y, 0), "p1");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x+1, origine.y+1), origine.x, origine.y, 3), "p2");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x-3, origine.y+1), origine.x, origine.y, 0), "p3");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x-3, origine.y+1), origine.x, origine.y, 4), "p2");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 4), origine.x-2, origine.y+4), origine.x, origine.y, 3), "p3");
+
+// 3 pieces
+origine = {x: 3, y: 10};
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 3), origine.x+3, origine.y-1), origine.x, origine.y, 5), "p1");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+1, origine.y+1), origine.x, origine.y, 3), "p2");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x+3, origine.y-2), origine.x, origine.y, 0), "p3");
+
+// 6 pieces shiny
+origine = {x: 21, y: 0};
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+2, origine.y-2), origine.x, origine.y, 0), "p1");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+1, origine.y+1), origine.x, origine.y, 4), "p2");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 0), origine.x+1, origine.y+1), origine.x, origine.y, 1), "p2");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x+3, origine.y-3), origine.x, origine.y, 1), "p3");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x+3, origine.y-3), origine.x, origine.y, 3), "p1");
+drawBoard(rotate_cpy(translate_cpy(rotate_cpy(quinte, 0, 0, 1), origine.x+3, origine.y-3), origine.x, origine.y, 4), "p3");
+
+// 6 pieces center
+origine = {x: 30, y: -11};
+drawBoard(translate_cpy(centre, origine.x, origine.y), "centre");
+for (var i = 0; i < 6; i++)
+	drawBoard(rotate_cpy(translate_cpy(centre, origine.x+3, origine.y-2), origine.x, origine.y, i), "p" + (i%3+1));
+
+svgElmt.style.display = "block";
+document.getElementById("jesus").appendChild(svgElmt);
+</script>
+</body>
+</html>
